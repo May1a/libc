@@ -584,14 +584,7 @@ bool writeSVToFile(SV filename, SV content)
     return true;
 }
 
-bool writeStrToFile(SV filename, Str content)
-{
-    SV contentSV = {
-        .len = content.len,
-        .items = content.items,
-    };
-    return writeSVToFile(filename, contentSV);
-}
+#define writeStrToFile(filename, content) writeSVToFile(filename, )
 
 #define $ArrayList(T) ArrayList##T
 /*
@@ -628,9 +621,9 @@ ParseResult parseInt(SV sv)
 
     size_t res = atol(sv.items);
     if (res == 0 && !svEqLit(sv, "0"))
-        return (ParseResult) { false, ParseErr_unknown };
+        return (ParseResult) { false, { ParseErr_unknown } };
 
-    return (ParseResult) { true, res };
+    return (ParseResult) { true, { res } };
 }
 
 /*
