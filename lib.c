@@ -119,11 +119,10 @@ extern "C" {
  * @see $ArrayList
  */
 #define $append(al, item) ({                                                                       \
-    $assert((al)->len <= (al)->cap);                                                               \
-    if ((al)->cap == (al)->len) {                                                                  \
+    if ((al)->cap <= ((al)->len + 1)) {                                                            \
         size_t newCap = (al)->cap * 2;                                                             \
         typeof((al)->items) newPtr = realloc((void*)(al)->items, newCap * sizeof((al)->items[0])); \
-        $assert(!!newPtr);                                                                         \
+        $assert(newPtr);                                                                           \
         (al)->cap = newCap;                                                                        \
         (al)->items = newPtr;                                                                      \
     }                                                                                              \
