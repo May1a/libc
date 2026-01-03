@@ -384,12 +384,19 @@ void ensureStrNullTermination(Str str)
  */
 SV svSlice(SV sv, size_t start, size_t len)
 {
-    if (start >= sv.len)
-        return (SV) { .items = sv.items + sv.len, .len = 0 };
+    $assert(start < sv.len);
     if (start + len > sv.len)
         len = sv.len - start;
     return (SV) { .items = sv.items + start, .len = len };
 }
+
+void svSliceMut(SV* sv, size_t start, size_t len)
+{
+    $assert(start < sv->len);
+    sv->items += start;
+    sv->len = len;
+}
+
 /*
  * @brief Creates an SV slice from the start of an existing SV to the specified end
  * @category Strings
@@ -403,6 +410,11 @@ SV svSliceTo(SV sv, size_t end)
     };
 }
 
+void svSliceToMut(SV* sv, size_t end)
+{
+    sv->len = end;
+}
+
 /*
  * @brief Creates an SV from a portion of a string after a given offset
  * @category Strings
@@ -411,9 +423,15 @@ SV svSliceTo(SV sv, size_t end)
  */
 SV svSliceFrom(SV sv, size_t start)
 {
-    if (start >= sv.len)
-        return (SV) { .items = sv.items + sv.len, .len = 0 };
+    $assert(start < sv.len);
     return (SV) { .items = sv.items + start, .len = sv.len - start };
+}
+
+void svSliceFromMut(SV* sv, size_t start)
+{
+    $assert(start < sv->len);
+    sv->items += start;
+    sv->len -= start;
 }
 
 /*
@@ -424,8 +442,8 @@ Str svToStr(SV sv, size_t extraCap)
 {
     size_t cap = sv.len + extraCap;
     char* ptr = malloc(cap);
-    if (ptr)
-        memcpy(ptr, sv.items, sv.len);
+    $assert(ptr);
+    memcpy(ptr, sv.items, sv.len);
     return (Str) { .items = ptr, .len = sv.len, .cap = cap };
 }
 
@@ -464,11 +482,12 @@ ArrayListSV splitSVByChar(SV sv, char splitBy)
     return svList;
 }
 
-#define splitBy(toSplit, splitBy_) _Generic((splitBy_),                 \
-    char: splitSVByChar,                                                \
-    SV: static_assert(false, "splitting by SV not implemented yet!"),   \
-    Str: static_assert(false, "splitting by Str not implemented yet!"), \
-    default: static_assert(false, "Invalid type passed to `splitBy`"))
+ArrayListSV splitStrByChar(Str str, char splitBy) { return splitSVByChar(strToSV(str), splitBy); }
+
+#define splitByChar(toSplit, splitBy_) _Generic((toSplit), \
+    SV: splitSVByChar,                                     \
+    Str: splitStrByChar,                                   \
+    default: static_assert(false, "Invalid type passed to `splitByChar`"))(toSplit, splitBy_)
 
 void svTrimLeft(SV sv)
 {
@@ -583,7 +602,7 @@ bool writeSVToFile(SV filename, SV content)
     return true;
 }
 
-#define writeStrToFile(filename, content) writeSVToFile(filename, )
+bool writeStrToFile(SV filename, Str content) { return writeSVToFile(filename, strToSV(content)); }
 
 #define $ArrayList(T) ArrayList##T
 /*
@@ -614,7 +633,11 @@ typedef struct {
     };
 } ParseResult;
 
-ParseResult parseInt(SV sv)
+/*
+ * @brief Parses an integer from an SV
+ * @category Strings
+ */
+ParseResult parseIntFromSV(SV sv)
 {
     ensureSVNullTermination(sv);
 
@@ -624,13 +647,17 @@ ParseResult parseInt(SV sv)
 
     return (ParseResult) { true, { res } };
 }
+ParseResult parseIntFromStr(Str str)
+{
+    return parseIntFromSV(strToSV(str));
+}
 
-/*
- * @brief Parses an integer from an SV
- * @category Strings
- */
-#define parseIntFromSV(sv) parseInt(sv)
+#define parseInt(s) _Generic((s), \
+    Str: parseIntFromStr,         \
+    SV: parseIntFromSV,           \
+    default: static_assert("Incompatible type passed to `parseInt, it can only be used with `Str` and `SV`"))(s)
 
+#if 0
 typedef enum {
     LogDebug,
     LogInfo,
@@ -638,7 +665,6 @@ typedef enum {
     LogError,
 } LogLevel;
 
-#if 0
 void $log(LogLevel ll, SV msg)
 {
     switch (ll) {
