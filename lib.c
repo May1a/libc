@@ -330,11 +330,47 @@ bool isAlnum(char c)
  * @brief Checks if SV starts with prefix SV
  * @category Strings
  */
-bool svStartsWith(SV sv, SV prefix)
+bool svStartsWithSV(SV sv, SV prefix)
 {
     if (sv.len < prefix.len)
         return false;
     return memcmp(sv.items, prefix.items, prefix.len) == 0;
+}
+/*
+ * @brief Checks if SV starts with prefix Str
+ * @category Strings
+ */
+bool svStartsWithStr(SV sv, Str prefix)
+{
+    if (sv.len < prefix.len)
+        return false;
+    return memcmp(sv.items, prefix.items, prefix.len) == 0;
+}
+
+#define svStartsWith(sv, prefix) _Generic((prefix), \
+    SV: svStartsWithSV,                             \
+    Str: svStartsWithStr,                           \
+    default: static_assert("Incorrect type passed to `svStartsWith`, please pass either `Str` or `SV`"))(sv, prefix)
+
+/*
+ * @brief Checks if Str starts with prefix Str
+ * @category Strings
+ */
+bool StrStartsWithStr(Str str, Str prefix)
+{
+    if (str.len < prefix.len)
+        return false;
+    return memcmp(str.items, prefix.items, prefix.len) == 0;
+}
+/*
+ * @brief Checks if Str starts with prefix Str
+ * @category Strings
+ */
+bool StrStartsWithSV(Str str, SV prefix)
+{
+    if (str.len < prefix.len)
+        return false;
+    return memcmp(str.items, prefix.items, prefix.len) == 0;
 }
 
 /*
@@ -489,28 +525,50 @@ ArrayListSV splitStrByChar(Str str, char splitBy) { return splitSVByChar(strToSV
     Str: splitStrByChar,                                   \
     default: static_assert(false, "Invalid type passed to `splitByChar`"))(toSplit, splitBy_)
 
-void svTrimLeft(SV sv)
+// TODO: Add toTrimmed functions
+#if 0
+SV SVtoTrimmedLeft(SV sv)
 {
-    size_t whitespaceChars = 0;
-    while (whitespaceChars < sv.len and isWhitespace(sv.items[whitespaceChars])) {
-        whitespaceChars += 1;
+    size_t i = 0;
+    while (i < sv.len and isWhitespace(sv.items[i])) {
+        i += 1;
     }
-    if (whitespaceChars < 1)
-        return;
-    sv.items += whitespaceChars;
+    if (i > 0)
+        sv.items += i;
+    return sv;
 }
-void svTrimRight(SV sv)
+Str StrtoTrimmedLeft(Str str)
 {
-    size_t whitespaceChars = 1;
-    while (whitespaceChars < sv.len and isWhitespace(sv.items[sv.len - whitespaceChars])) {
-        whitespaceChars += 1;
+    size_t i = 0;
+    while (i < str.len and isWhitespace(str.items[i])) {
+        i += 1;
     }
-    if (whitespaceChars == 1)
-        return;
-    sv.len -= (whitespaceChars - 1);
+    if (i > 0)
+        str.items += i;
+    return str;
+}
+#endif
+
+void svTrimLeft(SV* sv)
+{
+    size_t i = 0;
+    while (i < sv->len and isWhitespace(sv->items[i])) {
+        i += 1;
+    }
+    if (i > 0)
+        sv->items += i;
+}
+void svTrimRight(SV* sv)
+{
+    size_t i = 0;
+    while ((sv->len - i) > 0 and isWhitespace(sv->items[(sv->len - i)])) {
+        i += 1;
+    }
+    if (i > 0)
+        sv->len -= i;
 }
 
-void svTrim(SV sv)
+void svTrim(SV* sv)
 {
     svTrimLeft(sv);
     svTrimRight(sv);
