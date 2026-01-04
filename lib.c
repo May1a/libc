@@ -380,9 +380,9 @@ bool StrStartsWithSV(Str str, SV prefix)
 void ensureSVNullTermination(SV sv)
 {
     if (sv.items[sv.len] != '\0') {
-        char* tmpBuf = malloc(sv.len);
+        char* tmpBuf = malloc(sv.len + 1);
         $assert(tmpBuf);
-        memcpy(tmpBuf, sv.items, sv.len - 1);
+        memcpy(tmpBuf, sv.items, sv.len);
         tmpBuf[sv.len] = '\0';
         sv.items = tmpBuf;
     }
@@ -391,9 +391,9 @@ void ensureSVNullTermination(SV sv)
 void ensureStrNullTermination(Str str)
 {
     if (str.items[str.len] != '\0') {
-        char* tmpBuf = malloc(str.len);
+        char* tmpBuf = malloc(str.len + 1);
         $assert(tmpBuf);
-        memcpy(tmpBuf, str.items, str.len - 1);
+        memcpy(tmpBuf, str.items, str.len);
         tmpBuf[str.len] = '\0';
         str.items = tmpBuf;
     }
@@ -555,8 +555,10 @@ void svTrimLeft(SV* sv)
     while (i < sv->len and isWhitespace(sv->items[i])) {
         i += 1;
     }
-    if (i > 0)
+    if (i > 0) {
         sv->items += i;
+        sv->len -= i;
+    }
 }
 void svTrimRight(SV* sv)
 {
