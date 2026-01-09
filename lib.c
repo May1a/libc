@@ -13,11 +13,17 @@ extern "C" {
 #endif
 
 #define $private static
-
+#if defined(_DEBUG) || defined($DBG)
+#define $unreachable ({                                                                               \
+    fprintf(stderr, "Reached unreachable code (in debug mode: exit(1)) %s:%d\n", __FILE__, __LINE__); \
+    exit(1);                                                                                          \
+})
+#else
 #define $unreachable ({                                                      \
     fprintf(stderr, "Reached unreachable code %s:%d\n", __FILE__, __LINE__); \
     __builtin_unreachable();                                                 \
 })
+#endif
 
 #ifndef __has_builtin
 #define __has_builtin(x) 0
